@@ -1,5 +1,6 @@
 import os
 import datetime
+import requests
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -7,6 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 WEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
+WEATHER_API_URL = "https://api.openweathermap.org/data/2.5/weather"
 DEFAULT_LOCATION = "Manila, PH"
 
 
@@ -14,6 +16,24 @@ def fetch_weather_draft():
     if not WEATHER_API_KEY:
         return "⚠️ Weather API key not found. Please set OPENWEATHER_API_KEY in your .env file."
     return f"🌤️ {DEFAULT_LOCATION}: 28°C, Partly Cloudy (Draft)"
+
+    query_params = {
+        "q": location,
+        "appid": WEATHER_API_KEY,
+        "units": "metric"
+    }    
+
+    try:
+        response = requests.get(WEATHER_API_URL, params=query_params)
+        response.raise_for_status()
+
+        weather_data = response.json()
+        temp = weather_data["main"]["temp"]
+        description = weather_data["weather"][0]["description"].capitalize()
+        
+        return f"🌤️ {location}: {temp}°C, {description} "
+    except requests.RequestException as e:
+        return f"⚠️ Failed to fetch weather data: {e}"
 
 def fetch_news_draft():
     return "📰 Top Story: Something Something bout bread."
