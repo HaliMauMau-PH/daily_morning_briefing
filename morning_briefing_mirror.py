@@ -1,40 +1,53 @@
-import datetime
 import os
-
+import datetime
+import streamlit as st
 from dotenv import load_dotenv
 
-#load environment
-load_dotenv()
 
+load_dotenv()
 
 WEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 DEFAULT_LOCATION = "Manila, PH"
 
-def get_weather():
-    return
 
-def get_local_headlines():
-    return
+def fetch_weather_draft():
+    if not WEATHER_API_KEY:
+        return "⚠️ Weather API key not found. Please set OPENWEATHER_API_KEY in your .env file."
+    return f"🌤️ {DEFAULT_LOCATION}: 28°C, Partly Cloudy (Draft)"
 
-def get_daily_schedue():
-    return
+def fetch_news_draft():
+    return "📰 Top Story: Something Something bout bread."
 
-def generate_morning_briefing():
+def fetch_schedule_draft():
+    return "📅 10:00 AM - Go to school\n\n📅 2:00 PM - Take over the world"
 
-    currren_date = datetime.date.today()
-    formatted_date = currren_date.strftime("%A, %B %d, %Y")
-    seperator = "=" * 50
 
-    print(seperator)
-    print(f"Good morning! Today is {formatted_date}.")
-    print(seperator)
+def render_dashboard():
+    #page config
+    st.set_page_config(page_title="Morning Briefing", page_icon="🌅", layout="wide")
 
-if WEATHER_API_KEY:
-    print("Weather API key found. Fetching weather data...")
-else:
-    print("Weather API key not found. Skipping weather data.")
-
-    print(f"\n{separator}")
+    #header
+    current_date = datetime.date.today().strftime("%A, %B %d, %Y")
+    st.title("🌅 Good Morning!")
+    st.subheader(f"Today is {current_date}")
+    
+    st.divider()
+    
+    # split into 2
+    left_column, right_column = st.columns(2)
+    
+    # left
+    with left_column:
+        st.header("Current Weather")
+        st.info(fetch_weather_draft()) #
+        
+        st.header("Today's Schedule")
+        st.success(fetch_schedule_draft()) 
+        
+    # right
+    with right_column:
+        st.header("Top Headlines")
+        st.warning(fetch_news_draft()) 
 
 if __name__ == "__main__":
-    generate_morning_briefing()
+    render_dashboard()
