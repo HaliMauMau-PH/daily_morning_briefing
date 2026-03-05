@@ -1,5 +1,5 @@
 # Environments
-key.env
+.env
 
 # Python Cache
 __pycache__/
