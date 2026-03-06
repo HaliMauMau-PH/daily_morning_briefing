@@ -69,11 +69,12 @@ def fetch_news_draft(limit):
     except requests.exceptions.RequestException as error:
         return "⚠️ Could not fetch news. Check your connection or API key."
 
-def fetch_schedule_draft():
+def render_interactive_schedule():
     schedule = "schedule.json"
 
     if not os.path.exists(schedule):
-        return "📅 No schedule found. Please create a schedule.json file."
+        st.info("📅 No schedule found. Please create a schedule.json file to start adding tasks.")
+        return
     
     try:
         with open(schedule, "r") as file:
@@ -81,14 +82,45 @@ def fetch_schedule_draft():
         if not schedule_data:
             return "📅 Your schedule is empty. Please add some events to schedule.json."
         
-        formatted_schedule = ""
-        for time in schedule_data.items():
-            formatted_schedule += f"📅 **{time[0]}**: {time[1]}\n\n"
+        for time_key, task_desc in schedule_data.items():
+            text_col, button_col = st.columns([3, 1])
 
-        return formatted_schedule
+            with text_col:
+                st.write(f"⏰ **{time_key}** - {task_desc}")
+
+            with button_col:
+                if st.button("Done ✔️", key=f"done_{time_key}"):
+                    delete_task(time_key)
+                    st.rerun()
+
     except json.JSONDecodeError as e:
         return "⚠️ Invalid schedule format. Please ensure schedule.json is a valid JSON file."
 
+def add_task_schedule(task, time):
+    schedule_file = "schedule.json"
+
+    if os.path.exists(schedule_file):
+        try:
+            with open(schedule_file, "r") as file:
+                schedule_data = json.load(file)
+        except json.JSONDecodeError:
+            schedule_data = {}
+    else:
+        schedule_data = {}
+
+    with open(schedule_file, "w") as file:
+        json.dump({**schedule_data, time: task}, file, indent=4)
+
+def delete_task(time_key):
+    with open("schedule.json", "r") as file:
+        tasks = json.load(file)
+
+    if time_key in tasks:
+        del tasks[time_key]
+
+    with open("schedule.json", "w") as file:
+        json.dump(tasks, file, indent=4)
+    
 
 def render_dashboard():
     #page config
@@ -107,11 +139,26 @@ def render_dashboard():
     # left
     with left_column:
         st.header("Current Weather")
-        st.info(fetch_weather_draft(DEFAULT_LOCATION)) #
+        st.info(fetch_weather_draft(DEFAULT_LOCATION))
         
         st.header("Today's Schedule")
-        st.success(fetch_schedule_draft()) 
+        render_interactive_schedule()
         
+    with st.expander("Add New Task to Schedule"):
+        with st.form("add_task_form", clear_on_submit=True):
+            task = st.text_input("Task Description")
+            time = st.time_input("Time")
+            submit_button = st.form_submit_button("Add Task")
+
+        if submit_button and task and time:
+                add_task_schedule(task, str(time))
+                st.rerun()
+
+        if st.button("Clear Schedule"):
+            with open("schedule.json", "w") as file:
+                json.dump({}, file)
+            st.rerun()
+
     # right
     with right_column:
         st.header("Top Headlines")
