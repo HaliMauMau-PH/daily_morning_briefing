@@ -2,6 +2,7 @@ import os
 import datetime
 import requests
 import streamlit as st
+import json
 from dotenv import load_dotenv
 
 
@@ -11,11 +12,13 @@ WEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 WEATHER_API_URL = "https://api.openweathermap.org/data/2.5/weather"
 DEFAULT_LOCATION = "Manila, PH"
 
+NEWS_API_KEY = os.getenv("NEWS_API_KEY")
+NEWS_API_URL = "https://newsapi.org/v2/top-headlines"
+MAX_NEWS_HEADLINES = 5
 
-def fetch_weather_draft():
+def fetch_weather_draft(location):
     if not WEATHER_API_KEY:
         return "⚠️ Weather API key not found. Please set OPENWEATHER_API_KEY in your .env file."
-    return f"🌤️ {DEFAULT_LOCATION}: 28°C, Partly Cloudy (Draft)"
 
     query_params = {
         "q": location,
@@ -35,11 +38,56 @@ def fetch_weather_draft():
     except requests.RequestException as e:
         return f"⚠️ Failed to fetch weather data: {e}"
 
-def fetch_news_draft():
-    return "📰 Top Story: Something Something bout bread."
+def fetch_news_draft(limit):
+
+    if not NEWS_API_KEY:
+        return "⚠️ News API key not found. Please set NEWS_API_KEY in your .env file."
+    
+    query_parameters = {
+        "language": "en", # language english to get news more
+        "apiKey": NEWS_API_KEY,
+        "pageSize": limit
+    }
+    
+    try:
+        response = requests.get(NEWS_API_URL, params=query_parameters)
+        response.raise_for_status()
+        
+        news_data = response.json()
+        articles = news_data.get("articles", [])
+        
+        if not articles:
+            return "📰 No top headlines found right now."
+            
+        formatted_news = ""
+        for article in articles:
+            title = article.get("title", "No Title")
+            formatted_news += f"📰 **{title}**\n\n"
+            
+        return formatted_news
+        
+    except requests.exceptions.RequestException as error:
+        return "⚠️ Could not fetch news. Check your connection or API key."
 
 def fetch_schedule_draft():
-    return "📅 10:00 AM - Go to school\n\n📅 2:00 PM - Take over the world"
+    schedule = "schedule.json"
+
+    if not os.path.exists(schedule):
+        return "📅 No schedule found. Please create a schedule.json file."
+    
+    try:
+        with open(schedule, "r") as file:
+            schedule_data = json.load(file)
+        if not schedule_data:
+            return "📅 Your schedule is empty. Please add some events to schedule.json."
+        
+        formatted_schedule = ""
+        for time in schedule_data.items():
+            formatted_schedule += f"📅 **{time[0]}**: {time[1]}\n\n"
+
+        return formatted_schedule
+    except json.JSONDecodeError as e:
+        return "⚠️ Invalid schedule format. Please ensure schedule.json is a valid JSON file."
 
 
 def render_dashboard():
@@ -59,7 +107,7 @@ def render_dashboard():
     # left
     with left_column:
         st.header("Current Weather")
-        st.info(fetch_weather_draft()) #
+        st.info(fetch_weather_draft(DEFAULT_LOCATION)) #
         
         st.header("Today's Schedule")
         st.success(fetch_schedule_draft()) 
@@ -67,7 +115,7 @@ def render_dashboard():
     # right
     with right_column:
         st.header("Top Headlines")
-        st.warning(fetch_news_draft()) 
+        st.warning(fetch_news_draft(MAX_NEWS_HEADLINES)) 
 
 if __name__ == "__main__":
     render_dashboard()
